@@ -1,2 +1,3 @@
-# LMoPMiningShares
-This calculator generates a story about the success of the Lost Mines of Phandelver after Gundren Rockseeker reopens the mine.
+# Lost Mines of Phandelver mining share
+
+At the end of Lost Mines of Phandelver, Gundren Rockseeker offers the players 10% of mine profits if they locate and clear the mine.  My players chose to continue their existing characters into a new adventure with the expectation that they received their 10%.  I don't plan to give my players an unlimited supply of gold from a mithril mine indefinitely.  So, I generated this calculator that I could allow them to affect with d20 rolls, but that would eventually phase out their mine profits.  In universe, this will result in the characters having a falling out with Gundren Rockseeker.  They can choose to explore that or take this earning and move on.
