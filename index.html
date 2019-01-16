@@ -1,0 +1,294 @@
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+  <style type="text/css">
+
+    body {
+      background-color: #83848A;
+    }
+
+    #ex1Slider .slider-selection {
+    	background: #BABABA;
+    }
+
+    .card {
+      width: 800px;
+      margin: 15 auto;
+      background-color: #BFA372;
+      border-radius: 15px;
+    }
+
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="card-body">
+  <h2>Settings</h2>
+  <hr>
+  <div class="row">
+    <div class="col-12">Report Period</div>
+  </div>
+  <div class="row">
+    <div class="col-2">Start Day</div>
+    <div class="col-10"><input id="start" type="number" style="width: 65px;" min="0" max="999" value="0"></div>
+  </div>
+  <div class="row">
+    <div class="col-2">End Day</div>
+    <div class="col-10"><input id="end" type="number" style="width: 65px;" min="1" max="1000" value="1"></div>
+  </div>
+  <div class="row">
+    <div class="col-2">Duration Roll</div>
+    <div class="col-10"><input id="duration" type="number" style="width: 65px;" min="1" max="20" value="1"></div>
+  </div>
+  <div class="row">
+    <div class="col-2">Profits Roll</div>
+    <div class="col-10"><input id="profits" type="number" style="width: 65px;" min="1" max="10" value="1"></div>
+  </div>
+  <br />
+  <button id="calc">Calculate!</button>
+  <hr>
+  <h2>Results</h2>
+  <hr>
+  <p id="output"></p>
+  </div>
+</div>
+<script type="text/javascript">
+
+  var starting_funds, expenses, sales, end_date, salary, upkeep;
+  var mining_totals = {iron: 0, gold: 0, coal: 0, platinum: 0, mithril: 0}
+  var time_adjustment = Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8);
+  var profit_adjustment = Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.13, 1.14, 1.15, 1.16, 1.17, 1.18, 1.19, 1.2);
+
+  $("#calc").on("click", function() {
+
+    $("#output").text("");
+
+    //Iterate through all of the days
+    starting_funds = 1000 * 10 * 10;  // 1000g
+    expenses = 0;
+    sales = 0;
+    time_to_live_seed = 200; //Days until players start getting screwed
+    report_start_date = parseInt($("#start").val());
+    report_end_date = parseInt($("#end").val());
+    duration_adj = parseInt($("#duration").val());
+    profits_adj = parseInt($("#profits").val());
+    bi_wkly_revenue = 0;
+    salary = 0;
+    upkeep = 0;
+    bi_weekly_revenue_tracker = {iron: 0, gold: 0, coal: 0, platinum: 0, mithril: 0}
+
+
+    end_date = 365 * time_adjustment[duration_adj];
+
+    //The loop starts at 0 because even if we don't report on days 0 - start_date,
+    //we still need them to calculate the early earnings
+    for (i = 0; i <= Math.ceil(end_date) && i <= report_end_date; i++) {
+
+
+      //First, we need to build up the mine
+      if (i === 0) output("The mine opens for business.  It\'s first order of operations is to order the equipment neccessary to operate a mine.  He has 1000g starting funds.</br>", 0, 0, 0);
+
+      if (i === 1) {
+        output("Gundren Rockseeker begins by ordering four cranes at 25g each for a total cost of 100g.", 2, 0, 10000);
+        output("He then hires labor, materials, and fuel to power the mine's massive forge.", 4, 0, 50000);
+        output("Then, Gundren orders crates, tables, and a safe", 8, 0, 15000);
+        output("Finally, Gundren hires laborers, craftsmen, supervisors, and a foreman.", 12, 0, 0)
+      }
+
+      //Upkeep is every 2 weks
+      if (i % 14 === 0 && i !== 0) {
+        output("Gundren pays upkeep on the mine", i, 0, 1154);
+        upkeep += 1154;
+      }
+
+      //Then, we start making profit
+      if (i === 30) output("After 30 days, Gundren begins to excavate his first shipment of product", i, 0, 0)
+      if (i > 30 && i < (end_date * 0.9)) {
+
+        profit = mining(profits_adj);
+        bi_wkly_revenue += profit[1];
+        bi_weekly_revenue_tracker[profit[0]] += profit[1];
+        r_event = randomEvent(i, profits_adj);
+
+      }
+
+      if ((i - 30) % 7 === 0 && i > 30 && bi_wkly_revenue) {
+
+        output("After a week\'s worth of work, Gundren estimates he earned: " + convertCP(bi_wkly_revenue) + "<br /> \
+          | Coal: " + convertCP(bi_weekly_revenue_tracker.coal) + "<br /> \
+          | Iron: " + convertCP(bi_weekly_revenue_tracker.iron) + "<br /> \
+          | Gold: " + convertCP(bi_weekly_revenue_tracker.gold) + "<br /> \
+          | Mithril: " + convertCP(bi_weekly_revenue_tracker.mithril) + "<br /> \
+          | Platnum: " + convertCP(bi_weekly_revenue_tracker.platinum), i, bi_wkly_revenue, 0);
+
+        output("Gundren pays " + convertCP(bi_wkly_revenue / 10) + " in materials, tools, and operating expenses.", i, 0, bi_wkly_revenue / 10)
+        randomDelivery(i, profits_adj, bi_wkly_revenue);
+        bi_wkly_revenue = 0;
+        bi_weekly_revenue_tracker = {iron: 0, gold: 0, coal: 0, platinum: 0, mithril: 0}
+
+      }
+
+      if ((i - 30) % 14 === 0 && i > 30) {
+        wages = (18 * 250) + (2 * 1000) + (1 * 1000) + (1 * 1000);
+        output("Gundren pays wages", i, 0, wages * 14);
+        salary += wages * 14;
+      }
+
+      //Last, we screw our partners
+      if (i > (end_date * 0.9)) {
+
+      }
+
+      if (i === end_date) {
+        output("Gundren\'s payments have suddenly stop.  You write to Gundren for an explanation, but he doesn\'t respond.", i, 0, 0);
+      }
+
+      if (i === report_end_date || i === Math.ceil(end_date)) {
+        reportNetProfit();
+      }
+    }
+  });
+
+  function reportNetProfit() {
+    tally = "=======================PROFITS======================<br />";
+    tally += "Total Coal: " + convertCP(mining_totals.coal) + "<br />";
+    tally += "Total Iron: " + convertCP(mining_totals.iron) + "<br />";
+    tally += "Total Gold: " + convertCP(mining_totals.gold) + "<br />";
+    tally += "Total Mithril: " + convertCP(mining_totals.mithril) + "<br />";
+    tally += "Total Platinum: " + convertCP(mining_totals.platinum) + "<br />";
+    tally += "======================EXPENSES======================<br />";
+    tally += "Salaries: " + convertCP(salary) + "<br />";
+    tally += "Upkeep: " + convertCP(upkeep) + "<br />";
+    tally += "=======================TOTALS=======================<br />";
+    tally += "Total Funds: " + convertCP(funds) + "<br />";
+    tally += "Total Sales: " + convertCP(sales) + "<br />";
+    tally += "Total Expenses: " + convertCP(expenses) + "<br />";
+    profit = sales - expenses - starting_funds;
+    tally += "Profit: " + convertCP(profit) + "<br />";
+    tally += "Group Share: " + convertCP(profit * 0.1) + "<br />";
+    tally += "Indv Share: " + convertCP(profit * 0.02) + "<br />";
+    $("#output").append(tally);
+  }
+
+  function output(comment, day, profit, expense) {
+    expenses += expense;
+    sales += profit;
+    funds = starting_funds + sales - expenses;
+    if (profit > expense && funds > starting_funds) {
+      net = profit - expense;
+    } else {
+      net = 0;
+    }
+
+    tally = "Funds: " + convertCP(funds) + ", "
+    tally += "Sale: " + convertCP(profit) + ", "
+    tally += "Expense: " + convertCP(expense) + ", "
+    tally += "Profit: " + convertCP(net) + "<br />"
+
+    if (day >= report_start_date && day <= report_end_date) $("#output").append("Day " + day + ": " +comment + "<br />| " + tally + "<br />");
+  }
+
+  function convertCP(value) {
+
+    gp = Math.floor(value / 10 / 10)
+    sp = Math.floor((value % 10) / 10)
+    cp = Math.floor((value % 100))
+
+    return gp + "gp, " + sp + "sp, " + cp + "cp"
+
+  }
+
+  function mining(profits_adj) {
+
+    coal = 10 / 33.25;
+    iron = 100 / 3.5;
+    gold = 5000 / 1.5;
+    plat = 50000 / 1.25;
+    mith = 75000 / 10;
+
+    effort = Math.ceil(Math.random() * (20 - 1) + 1);
+
+    daily_efforts = 22 * effort * (profit_adjustment[profits_adj]) / 15;
+
+    rand = Math.ceil(Math.random() * (20 - 1 + profits_adj) + 1);
+
+    if (rand < 10) {
+      mining_totals.coal += daily_efforts * coal;
+      return ["coal", daily_efforts * coal];
+    }
+    if (rand >= 10 && rand <= 14) {
+      mining_totals.iron += daily_efforts * iron;
+      return ["iron", daily_efforts * iron];
+    }
+    if (rand >= 15 && rand <= 24) {
+      mining_totals.gold += daily_efforts * gold;
+      return ["gold", daily_efforts * gold];
+    }
+    if (rand >= 25 && rand <= 25) {
+      mining_totals.platinum += daily_efforts * plat;
+      return ["platinum", daily_efforts * plat];
+    }
+    if (rand >= 26) {
+      mining_totals.mithril += daily_efforts * mith;
+      return ["mithril", daily_efforts * mith];
+    }
+
+  }
+
+  function randomEvent(day, profits_adj) {
+
+    rand = Math.ceil(Math.random() * (100 - 1) + 1) + profits_adj;
+
+    if (rand <= 1) {
+      output("The mine entrance collapses, no one ever hears from the miners again.", day, 0, 0);
+      end_date = day + 1;
+    }
+    if (rand == 18) {
+      output("Ogres raid the mine.  Several miners are killed, some ore was stolen, and the equipment is in rumbles.  Total damage costs: 750g", day, 0, 75000)
+    }
+    if (rand >= 115) {
+      output("A miner finds a large cache of mithril ore worth 10,000gp", day, 1000000, 0)
+    }
+  }
+
+  function randomDelivery(day, profits_adj, bi_wkly_revenue) {
+
+    rand = Math.ceil(Math.random() * (20 - 1 + profits_adj) + 1);
+
+    if (rand == 1) {
+      output("Wagon failed to pay taxes while crossing a major city.  Goods seized by authories.  Must pay 100gp fine.", i, 0, bi_wkly_revenue + 10000);
+    }
+    if (rand >= 2 && rand <= 3) {
+      output("Shipment lost due to bad weather. Revenue for the shipment is zero.", i, 0, bi_wkly_revenue);
+    }
+    if (rand >= 4 && rand <= 6) {
+      output("Some goods lost due to piracy or theft. Revenue for the shipment is equal to half of the value of the goods.", i, 0, bi_wkly_revenue / 2);
+    }
+    if (rand >= 7 && rand <= 12) {
+      output("Goods sold at market value, but merchants incur extra costs and demand an additional 100gp.", i, 0, 10000);
+    }
+    if (rand >= 13 && rand <= 16) {
+      output("Goods sold at market value. ", i, 0, 0);
+    }
+    if (rand >= 17 && rand <= 20) {
+      output("Merchants are able to exploit supply & demand fluctuations to sell the goods at higher prices. Revenue for the shipment is equal to the value of goods plus 10%.", i, bi_wkly_revenue * 0.1, 0);
+    }
+    if (rand >= 21 && rand <= 23) {
+      output("Merchants use their connections to find someone who is desperate for the shipment. Your revenue for the shipment is equal to the value of goods plus 50%. ", i, bi_wkly_revenue * 0.5, 0);
+    }
+    if (rand >= 24 && rand <= 25) {
+      output("Merchants break a blockade to supply a besieged city. Revenue for the shipment is equal to the value of goods plus 75%. ", i, bi_wkly_revenue * 0.75, 0);
+    }
+    if (rand >= 26 && rand <= 29) {
+      output("Seagoing merchants sell to isolated colony or island community. Revenue for the shipment is equal to double the normal value of your goods!", i, bi_wkly_revenue, 0);
+    }
+    if (rand == 30) {
+      output("Ship lost with owner on board. The insurance company pays you 5000gp!", i, 500000, 0);
+    }
+  }
+
+</script>
+</body>
+</html>
