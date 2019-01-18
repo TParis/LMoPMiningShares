@@ -56,10 +56,10 @@
 </div>
 <script type="text/javascript">
 
-  var starting_funds, expenses, sales, end_date, salary, upkeep;
+  var starting_funds, expenses, sales, end_date, salary, upkeep, players_share;
   var mining_totals = {iron: 0, gold: 0, coal: 0, platinum: 0, mithril: 0}
   var time_adjustment = Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8);
-  var profit_adjustment = Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.13, 1.14, 1.15, 1.16, 1.17, 1.18, 1.19, 1.2);
+  var profit_adjustment = Array(0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.13, 1.14, 1.15, 1.16, 1.17, 1.18, 1.19, 1.2);
 
   $("#calc").on("click", function() {
 
@@ -68,6 +68,7 @@
     //Iterate through all of the days
     starting_funds = 1000 * 10 * 10;  // 1000g
     expenses = 0;
+    players_share = 0;
     sales = 0;
     time_to_live_seed = 200; //Days until players start getting screwed
     report_start_date = parseInt($("#start").val());
@@ -81,6 +82,8 @@
 
 
     end_date = 365 * time_adjustment[duration_adj];
+    if (end_date < 72)
+      end_date = 72;
 
     //The loop starts at 0 because even if we don't report on days 0 - start_date,
     //we still need them to calculate the early earnings
@@ -90,12 +93,11 @@
       //First, we need to build up the mine
       if (i === 0) output("The mine opens for business.  It\'s first order of operations is to order the equipment neccessary to operate a mine.  He has 1000g starting funds.</br>", 0, 0, 0);
 
-      if (i === 1) {
-        output("Gundren Rockseeker begins by ordering four cranes at 25g each for a total cost of 100g.", 2, 0, 10000);
-        output("He then hires labor, materials, and fuel to power the mine's massive forge.", 4, 0, 50000);
-        output("Then, Gundren orders crates, tables, and a safe", 8, 0, 15000);
-        output("Finally, Gundren hires laborers, craftsmen, supervisors, and a foreman.", 12, 0, 0)
-      }
+      if (i === 2) output("Gundren Rockseeker begins by ordering four cranes at 25g each for a total cost of 100g.", 2, 0, 10000);
+      if (i === 4) output("He then hires labor, materials, and fuel to power the mine's massive forge.", 4, 0, 50000);
+      if (i === 8) output("Then, Gundren orders crates, tables, and a safe", 8, 0, 15000);
+      if (i === 12) output("Finally, Gundren hires laborers, craftsmen, supervisors, and a foreman.", 12, 0, 0)
+
 
       //Upkeep is every 2 weks
       if (i % 14 === 0 && i !== 0) {
@@ -105,6 +107,7 @@
 
       //Then, we start making profit
       if (i === 30) output("After 30 days, Gundren begins to excavate his first shipment of product", i, 0, 0)
+
       if (i > 30 && i < (end_date * 0.9)) {
 
         profit = mining(profits_adj);
@@ -123,8 +126,10 @@
           | Mithril: " + convertCP(bi_weekly_revenue_tracker.mithril) + "<br /> \
           | Platnum: " + convertCP(bi_weekly_revenue_tracker.platinum), i, bi_wkly_revenue, 0);
 
-        output("Gundren pays " + convertCP(bi_wkly_revenue / 10) + " in materials, tools, and operating expenses.", i, 0, bi_wkly_revenue / 10)
+        output("Gundren pays " + convertCP(bi_wkly_revenue / 10) + " in materials, tools, and operating expenses.", i, 0, bi_wkly_revenue / 10);
+        output("Gundren pays " + convertCP(bi_wkly_revenue / 10) + " in taxes, shipment costs, and guard fees.", i, 0, bi_wkly_revenue / 10);
         randomDelivery(i, profits_adj, bi_wkly_revenue);
+
         bi_wkly_revenue = 0;
         bi_weekly_revenue_tracker = {iron: 0, gold: 0, coal: 0, platinum: 0, mithril: 0}
 
@@ -136,13 +141,26 @@
         salary += wages * 14;
       }
 
-      //Last, we screw our partners
-      if (i > (end_date * 0.9)) {
-
+      //Pay players
+      if (i % 14 === 0 && i > 30) {
+        screwment_amount = 1;
+        if (i > (end_date * 0.9) ||  players_share > 4500000) {
+          screwment_amount = Math.floor(((end_date - i) / end_date) * 50) / 100;
+        }
+        players_cut = (((sales - expenses) * 0.1) - players_share) * screwment_amount;
+        if (players_cut > 0) {
+          output("Gundren makes a deposit of " + convertCP(players_cut) + " into a bank account set aside for your group.", i, 0, 0);
+          players_share += players_cut; //For final tally
+        }
       }
 
-      if (i === end_date) {
-        output("Gundren\'s payments have suddenly stop.  You write to Gundren for an explanation, but he doesn\'t respond.", i, 0, 0);
+      if (i === Math.ceil(end_date) || players_share > 6000000) {
+        if (sales - expenses > 0 || players_share > 6000000) {
+            output("You havent receied a deposit from Gundren\'s in over a month.  The payments to your account have suddenly stopped.  You write to Gundren for an explanation, but he doesn\'t respond.", i + 30, 0, 0);
+            i = Math.ceil(end_date);
+        } else {
+            output("Gundren closes the mine.  It made no profit.  He was a fool to believe there was still value in an old legend.", i, 0, 0);
+        }
       }
 
       if (i === report_end_date || i === Math.ceil(end_date)) {
@@ -152,42 +170,56 @@
   });
 
   function reportNetProfit() {
-    tally = "=======================PROFITS======================<br />";
+    tally = "<div class=\"row\">";
+    tally += "<div class=\"col-12\">";
+    tally += "===============================RESULTS================================<br />";
+    tally += "</div>";
+    tally += "</div>";
+    tally += "<div class=\"row\">";
+    tally += "<div class=\"col-6\">";
+    tally += "==============PROFITS=============<br />";
     tally += "Total Coal: " + convertCP(mining_totals.coal) + "<br />";
     tally += "Total Iron: " + convertCP(mining_totals.iron) + "<br />";
     tally += "Total Gold: " + convertCP(mining_totals.gold) + "<br />";
     tally += "Total Mithril: " + convertCP(mining_totals.mithril) + "<br />";
     tally += "Total Platinum: " + convertCP(mining_totals.platinum) + "<br />";
-    tally += "======================EXPENSES======================<br />";
+    tally += "=============EXPENSES=============<br />";
     tally += "Salaries: " + convertCP(salary) + "<br />";
     tally += "Upkeep: " + convertCP(upkeep) + "<br />";
-    tally += "=======================TOTALS=======================<br />";
+    tally += "</div>";
+    tally += "<div class=\"col-6\">";
+    tally += "===============TOTALS=============<br />";
     tally += "Total Funds: " + convertCP(funds) + "<br />";
     tally += "Total Sales: " + convertCP(sales) + "<br />";
     tally += "Total Expenses: " + convertCP(expenses) + "<br />";
-    profit = sales - expenses - starting_funds;
+    profit = sales - expenses;
     tally += "Profit: " + convertCP(profit) + "<br />";
-    tally += "Group Share: " + convertCP(profit * 0.1) + "<br />";
-    tally += "Indv Share: " + convertCP(profit * 0.02) + "<br />";
+    tally += "Group Share: " + convertCP(players_share) + "<br />";
+    tally += "<strong>Indv Share: " + convertCP(players_share * 0.2) + "</strong><br />";
+    tally += "</div>";
+    tally += "</div>";
     $("#output").append(tally);
   }
 
   function output(comment, day, profit, expense) {
-    expenses += expense;
-    sales += profit;
-    funds = starting_funds + sales - expenses;
-    if (profit > expense && funds > starting_funds) {
-      net = profit - expense;
-    } else {
-      net = 0;
+
+    if (day >= report_start_date && day <= report_end_date) {
+      expenses += expense;
+      sales += profit;
+      funds = starting_funds + sales - expenses;
+      if (profit > expense && funds > starting_funds) {
+        net = profit - expense;
+      } else {
+        net = 0;
+      }
+
+      tally = "Funds: " + convertCP(funds) + ", "
+      tally += "Sale: " + convertCP(profit) + ", "
+      tally += "Expense: " + convertCP(expense) + ", "
+      tally += "Profit: " + convertCP(net) + "<br />"
+
+      $("#output").append("Day " + day + ": " +comment + "<br />| " + tally + "<br />");
     }
-
-    tally = "Funds: " + convertCP(funds) + ", "
-    tally += "Sale: " + convertCP(profit) + ", "
-    tally += "Expense: " + convertCP(expense) + ", "
-    tally += "Profit: " + convertCP(net) + "<br />"
-
-    if (day >= report_start_date && day <= report_end_date) $("#output").append("Day " + day + ": " +comment + "<br />| " + tally + "<br />");
   }
 
   function convertCP(value) {
@@ -205,34 +237,38 @@
     coal = 10 / 33.25;
     iron = 100 / 3.5;
     gold = 5000 / 1.5;
-    plat = 50000 / 1.25;
+    plat = 50000 / 6.25;
     mith = 75000 / 10;
 
     effort = Math.ceil(Math.random() * (20 - 1) + 1);
 
-    daily_efforts = 22 * effort * (profit_adjustment[profits_adj]) / 15;
+    daily_efforts = 22 * effort * (profit_adjustment[profits_adj]);
 
-    rand = Math.ceil(Math.random() * (20 - 1 + profits_adj) + 1);
+    rand = Math.ceil(Math.random() * (10 - 1) + 1 + (profits_adj));
 
     if (rand < 10) {
-      mining_totals.coal += daily_efforts * coal;
-      return ["coal", daily_efforts * coal];
+      mining_totals.coal += daily_efforts * coal * ((100 + profits_adj) / 500);
+      return ["coal", daily_efforts * coal * ((100 + profits_adj) / 500)];
     }
     if (rand >= 10 && rand <= 14) {
-      mining_totals.iron += daily_efforts * iron;
-      return ["iron", daily_efforts * iron];
+      mining_totals.iron += daily_efforts * iron * ((100 + profits_adj) / 500);
+      return ["iron", daily_efforts * iron * ((100 + profits_adj) / 500)];
     }
-    if (rand >= 15 && rand <= 24) {
-      mining_totals.gold += daily_efforts * gold;
-      return ["gold", daily_efforts * gold];
+    if (rand >= 15 && rand <= 18) {
+      mining_totals.gold += daily_efforts * gold * ((100 + profits_adj) / 500);
+      return ["gold", daily_efforts * gold * ((100 + profits_adj) / 500)];
     }
-    if (rand >= 25 && rand <= 25) {
-      mining_totals.platinum += daily_efforts * plat;
-      return ["platinum", daily_efforts * plat];
+    if (rand >= 18 && rand <= 26) {
+      mining_totals.mithril += daily_efforts * mith * ((100 + profits_adj) / 500 / 2);
+      return ["mithril", daily_efforts * mith * ((100 + profits_adj) / 500 / 2)];
     }
-    if (rand >= 26) {
-      mining_totals.mithril += daily_efforts * mith;
-      return ["mithril", daily_efforts * mith];
+    if (rand >= 27 && rand <= 29) {
+      mining_totals.mithril += daily_efforts * mith * ((100 + profits_adj) / 500);
+      return ["mithril", daily_efforts * mith * ((100 + profits_adj) / 500)];
+    }
+    if (rand >= 30) {
+      mining_totals.platinum += daily_efforts * plat * ((100 + profits_adj) / 500);
+      return ["platinum", daily_efforts * plat * ((100 + profits_adj) / 500)];
     }
 
   }
