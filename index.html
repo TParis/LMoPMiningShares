@@ -42,9 +42,9 @@
     <div class="col-2">Duration Roll</div>
     <div class="col-10"><input id="duration" type="number" style="width: 65px;" min="1" max="20" value="1"></div>
   </div>
-  <div class="row">
+  <div class="row profits" id="profits-0">
     <div class="col-2">Profits Roll</div>
-    <div class="col-10"><input id="profits" type="number" style="width: 65px;" min="1" max="10" value="1"></div>
+    <div class="col-10"><input type="number" style="width: 65px;" min="1" max="20" value="1"></div>
   </div>
   <br />
   <button id="calc">Calculate!</button>
@@ -61,6 +61,27 @@
   var time_adjustment = Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8);
   var profit_adjustment = Array(0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.13, 1.14, 1.15, 1.16, 1.17, 1.18, 1.19, 1.2);
 
+  $("#end").on("change", function() {
+    $(".profits").hide(); //Clear profits
+    $(".profits").first().show(); //Show first
+    for (i = 0; i < Math.floor($("#end").val() / 30) + 1; i++) {
+      //If the element doesn't exist, create it
+      if (!$("#profits-" + i).length) {
+        var div = $("<div>").addClass("row profits").attr("id", "profits-" + i);
+        var header = $("<div>").addClass("col-2").text("Profits Roll");
+        var input_div = $("<div>").addClass("col-10");
+        var input = $("<input>").attr("type", "number").attr("min", "1").attr("max", "20").attr("value", "1").css("width", "65px");
+        $(div).append(header).append(input_div);
+        $(input_div).append(input);
+        elem = $(".profits:last-child");
+        $(".profits").last().after($(div));
+      //If it does exist, show it
+      } else {
+        $("#profits-" + i).show(); //Show them
+      }
+    }
+  })
+
   $("#calc").on("click", function() {
 
     $("#output").text("");
@@ -74,7 +95,6 @@
     report_start_date = parseInt($("#start").val());
     report_end_date = parseInt($("#end").val());
     duration_adj = parseInt($("#duration").val());
-    profits_adj = parseInt($("#profits").val());
     bi_wkly_revenue = 0;
     salary = 0;
     upkeep = 0;
@@ -88,6 +108,8 @@
     //The loop starts at 0 because even if we don't report on days 0 - start_date,
     //we still need them to calculate the early earnings
     for (i = 0; i <= Math.ceil(end_date) && i <= report_end_date; i++) {
+
+      profits_adj = parseInt($("#profits-" + Math.floor(((duration_adj / end_date) * i) / 30) + " > div > input").first().val());
 
 
       //First, we need to build up the mine
