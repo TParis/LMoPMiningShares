@@ -7,6 +7,12 @@
 
     body {
       background-color: #83848A;
+      background-image: url('https://lh3.googleusercontent.com/9QBBE2t-c7ec5_cRCDpL4GDJTHfpBExGsFCMgmFv-fZ81LUWJmOg5GL0zmRGTgr2sjZmMlh_eP3EiYnWUPyzLQ=s1200');
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center;
+      background-blend-mode: luminosity;
+      background-attachment: fixed;
     }
 
     #ex1Slider .slider-selection {
@@ -16,7 +22,7 @@
     .card {
       width: 800px;
       margin: 15 auto;
-      background-color: #BFA372;
+      background-color: rgba(191, 163, 114, 0.8);
       border-radius: 15px;
     }
 
@@ -27,24 +33,33 @@
   <div class="card-body">
   <h2>Settings</h2>
   <hr>
-  <div class="row">
-    <div class="col-12">Report Period</div>
-  </div>
-  <div class="row">
-    <div class="col-2">Start Day</div>
-    <div class="col-10"><input id="start" type="number" style="width: 65px;" min="0" max="999" value="0"></div>
-  </div>
-  <div class="row">
-    <div class="col-2">End Day</div>
-    <div class="col-10"><input id="end" type="number" style="width: 65px;" min="1" max="1000" value="1"></div>
-  </div>
-  <div class="row">
-    <div class="col-2">Duration Roll</div>
-    <div class="col-10"><input id="duration" type="number" style="width: 65px;" min="1" max="20" value="1"></div>
-  </div>
-  <div class="row profits" id="profits-0">
-    <div class="col-2">Profits Roll</div>
-    <div class="col-10"><input type="number" style="width: 65px;" min="1" max="20" value="1"></div>
+  <div class="container">
+    <div class="row">
+      <div class="col-6">
+        <div class="row">
+          <div class="col-12 font-weight-bold">REPORT PERIOD<hr></div>
+        </div>
+        <div class="row">
+          <div class="col-5 font-weight-bold">Start Day</div>
+          <div class="col-7"><input id="start" type="number" style="width: 65px;" min="0" max="999" value="0"></div>
+        </div>
+        <div class="row">
+          <div class="col-5 font-weight-bold">End Day</div>
+          <div class="col-7"><input id="end" type="number" style="width: 65px;" min="1" max="1000" value="1"></div>
+        </div>
+        <div class="row">
+          <div class="col-5 font-weight-bold">Duration Roll</div>
+          <div class="col-7"><input id="duration" type="number" style="width: 65px;" min="1" max="20" value="1"></div>
+        </div>
+        <div class="row profits" id="profits-0">
+          <div class="col-5 font-weight-bold">Profits Roll</div>
+          <div class="col-7"><input type="number" style="width: 65px;" min="1" max="20" value="1"></div>
+        </div>
+      </div>
+      <div class="col-6">
+        <textarea id="results-box" cols=40 rows=10></textarea>
+      </div>
+    </div>
   </div>
   <br />
   <button id="calc">Calculate!</button>
@@ -52,6 +67,7 @@
   <h2>Results</h2>
   <hr>
   <p id="output"></p>
+  <hr>
   </div>
 </div>
 <script type="text/javascript">
@@ -60,7 +76,14 @@
   var mining_totals = {iron: 0, gold: 0, coal: 0, platinum: 0, mithril: 0}
   var time_adjustment = Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8);
   var profit_adjustment = Array(0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.13, 1.14, 1.15, 1.16, 1.17, 1.18, 1.19, 1.2);
+  var saved_record = Array();
+  var i = 0;
 
+  var starting_funds, expenses, players_share, sales, time_to_live_seed, report_start_date, report_end_date, duration_adj, bi_wkly_revenue, salary, upkeep, end_date;
+  bi_weekly_revenue_tracker = {iron: 0, gold: 0, coal: 0, platinum: 0, mithril: 0};
+  profit_rolls = [];
+
+  //Iterate through all of the days
   $("#end").on("change", function() {
     $(".profits").hide(); //Clear profits
     $(".profits").first().show(); //Show first
@@ -68,8 +91,8 @@
       //If the element doesn't exist, create it
       if (!$("#profits-" + i).length) {
         var div = $("<div>").addClass("row profits").attr("id", "profits-" + i);
-        var header = $("<div>").addClass("col-2").text("Profits Roll");
-        var input_div = $("<div>").addClass("col-10");
+        var header = $("<div>").addClass("col-5 font-weight-bold").text("Profits Roll");
+        var input_div = $("<div>").addClass("col-7");
         var input = $("<input>").attr("type", "number").attr("min", "1").attr("max", "20").attr("value", "1").css("width", "65px");
         $(div).append(header).append(input_div);
         $(input_div).append(input);
@@ -85,6 +108,7 @@
   $("#calc").on("click", function() {
 
     $("#output").text("");
+    saved_record = Array();
 
     //Iterate through all of the days
     starting_funds = 1000 * 10 * 10;  // 1000g
@@ -99,15 +123,78 @@
     salary = 0;
     upkeep = 0;
     bi_weekly_revenue_tracker = {iron: 0, gold: 0, coal: 0, platinum: 0, mithril: 0}
-
-
     end_date = 365 * time_adjustment[duration_adj];
+
     if (end_date < 72)
       end_date = 72;
 
+
+    profit_rolls = [];
+
+    $(".profits").each(function() {
+      profit_rolls.push(parseInt($(this).find("input").val()))
+    });
+
+    i = 0;
+
+    calculate();
+  });
+
+  $("#results-box").on("paste", function(e) {
+
+    data_array = $.parseJSON(e.originalEvent.clipboardData.getData('text'));
+
+    settings = data_array.slice(-1)[0].settings;
+    transaction_log = data_array.slice(0, -1);
+
+
+    saved_record = Array();
+
+    $("#start").val(settings.report_start_date);
+    $("#end").val(settings.report_end_date);
+    $("#duration").val(settings.duration_adj);
+
+    $(".profits").each(function(index) {
+      $(this).val(settings.profit_rolls[index]);
+    });
+
+
+    //Iterate through all of the days
+    starting_funds = settings.starting_funds;
+    expenses = settings.expenses;
+    players_share = settings.players_share;
+    sales = settings.sales;
+    time_to_live_seed = settings.time_to_live_seed;
+    report_start_date = settings.report_start_date;
+    report_end_date = settings.report_end_date;
+    duration_adj = settings.duration_adj;
+    salary = settings.salary;
+    upkeep = settings.upkeep;
+    mining_totals = settings.mining_totals;
+    end_date = settings.end_date;
+
+    $.each(transaction_log, function(index, value) {
+
+      tally = "Funds: " + convertCP(value.funds) + ", "
+      tally += "Sale: " + convertCP(value.profit) + ", "
+      tally += "Expense: " + convertCP(value.expense) + ", "
+      tally += "Profit: " + convertCP(value.net) + "<br />"
+
+      $("#output").append("Day " + value.day + ": " + value.comment  + "<br />| " + tally + "<br />");
+
+      i = value.day;
+
+    });
+
+    calculate();
+
+  });
+
+  function calculate() {
+
     //The loop starts at 0 because even if we don't report on days 0 - start_date,
     //we still need them to calculate the early earnings
-    for (i = 0; i <= Math.ceil(end_date) && i <= report_end_date; i++) {
+    for (; i <= Math.ceil(end_date) && i <= report_end_date; i++) {
 
       profits_adj = parseInt($("#profits-" + Math.floor(((duration_adj / end_date) * i) / 30) + " > div > input").first().val());
 
@@ -178,7 +265,7 @@
 
       if (i === Math.ceil(end_date) || players_share > 6000000) {
         if (sales - expenses > 0 || players_share > 6000000) {
-            output("You havent receied a deposit from Gundren\'s in over a month.  The payments to your account have suddenly stopped.  You write to Gundren for an explanation, but he doesn\'t respond.", i + 30, 0, 0);
+            output("You havent received a deposit from Gundren\'s in over a month.  The payments to your account have suddenly stopped.  You write to Gundren for an explanation, but he doesn\'t respond.  He won\'t receive you at his office and the dwarves that operate his mine refuse to speak with you.  Several well armored and grislied guards suggest that you leave.", i + 30, 0, 0);
             i = Math.ceil(end_date);
         } else {
             output("Gundren closes the mine.  It made no profit.  He was a fool to believe there was still value in an old legend.", i, 0, 0);
@@ -189,7 +276,7 @@
         reportNetProfit();
       }
     }
-  });
+  }
 
   function reportNetProfit() {
     tally = "<div class=\"row\">";
@@ -221,6 +308,17 @@
     tally += "</div>";
     tally += "</div>";
     $("#output").append(tally);
+
+
+
+    settings = {starting_funds: starting_funds, expenses: expenses, players_share: players_share, sales: sales,
+                    time_to_live_seed: time_to_live_seed, report_start_date: report_start_date,
+                    report_end_date: report_end_date, duration_adj: duration_adj, profit_rolls: profit_rolls, end_date: end_date,
+                    salary: salary, upkeep: upkeep,
+                    mining_totals: mining_totals};
+
+    saved_record.push({settings: settings});
+    $("#results-box").val(JSON.stringify(saved_record));
   }
 
   function output(comment, day, profit, expense) {
@@ -241,6 +339,9 @@
       tally += "Profit: " + convertCP(net) + "<br />"
 
       $("#output").append("Day " + day + ": " +comment + "<br />| " + tally + "<br />");
+
+      saved_record.push({day: day, net: net, comment: comment, funds: funds, profit: profit, expense: expense, bi_weekly_revenue_tracker: bi_weekly_revenue_tracker, sales: sales, expenses: expenses, salary: salary, upkeep: upkeep});
+
     }
   }
 
@@ -348,5 +449,6 @@
   }
 
 </script>
+
 </body>
 </html>
